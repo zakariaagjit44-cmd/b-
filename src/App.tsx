@@ -29,13 +29,15 @@ const App: React.FC = () => {
 
     const newUserMessage: Message = { id: Date.now(), text, sender: Sender.USER };
     
+    // The state update is tricky with closures. Pass a function to setMessages to get the latest state.
+    const currentHistory = messages;
+    
     // Add user message and a placeholder for AI response to the UI
     setMessages((prev) => [...prev, newUserMessage, { id: Date.now() + 1, text: '', sender: Sender.AI, isStreaming: true }]);
     setIsAiResponding(true);
 
     try {
-        // The `messages` variable from the closure contains the correct history *before* the new message.
-        const stream = getAiResponseStream(messages, text);
+        const stream = getAiResponseStream(currentHistory, text);
         let fullAiText = '';
         
         for await (const chunkText of stream) {
@@ -56,7 +58,7 @@ const App: React.FC = () => {
             const lastMessage = prev[prev.length - 1];
             if (lastMessage && lastMessage.sender === Sender.AI) {
                 const updatedMessages = [...prev.slice(0, -1)];
-                updatedMessages.push({ ...lastMessage, isStreaming: false });
+                updatedMessages.push({ ...lastMessage, text: fullAiText, isStreaming: false });
                 return updatedMessages;
             }
             return prev;

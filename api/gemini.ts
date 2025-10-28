@@ -1,5 +1,5 @@
-import { GoogleGenAI, Chat, Type, Modality } from "@google/genai";
-import type { Message, Sender } from '../src/types';
+import { GoogleGenAI, Type, Modality } from "@google/genai";
+import type { Message } from '../src/types';
 
 // This is a Vercel Edge Function
 export const config = {
@@ -9,7 +9,6 @@ export const config = {
 // Initialize the Gemini AI model
 // IMPORTANT: The API key is read from environment variables on the server.
 // It is NOT exposed to the client.
-// FIX: The GoogleGenAI constructor expects an object with an `apiKey` property.
 const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY!});
 
 // The main handler for all API requests from the frontend
