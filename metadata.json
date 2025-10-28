@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Telc Speaking Trainer (Arabic)",
+  "description": "An AI-powered web application to help users practice for the Telc German speaking exam. The app provides a conversational partner, real-time feedback, and a final evaluation, with an interface in Arabic.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
