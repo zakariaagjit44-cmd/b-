@@ -36,11 +36,15 @@ export default async function handler(request: Request) {
   }
 }
 
-// Handles streaming chat responses
+// Handles streaming chat responses using a stateless method
 async function handleChat({ history, newUserMessage }: { history: Message[], newUserMessage: string }) {
-  const chat = ai.chats.create({
+  // Combine the history and the new message for the API call
+  const fullHistory = transformHistoryForApi(history);
+  const contents = [...fullHistory, { role: 'user', parts: [{ text: newUserMessage }] }];
+
+  const responseStream = await ai.models.generateContentStream({
     model: 'gemini-2.5-flash',
-    history: transformHistoryForApi(history),
+    contents: contents, // Send the full conversation history
     config: {
       temperature: 0.7,
       topP: 0.95,
@@ -56,12 +60,10 @@ async function handleChat({ history, newUserMessage }: { history: Message[], new
     },
   });
 
-  const stream = await chat.sendMessageStream({ message: newUserMessage });
-
   // Pipe the stream from Gemini to the client
   const readableStream = new ReadableStream({
     async start(controller) {
-      for await (const chunk of stream) {
+      for await (const chunk of responseStream) {
         const chunkText = chunk.text;
         if (chunkText) {
           controller.enqueue(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
