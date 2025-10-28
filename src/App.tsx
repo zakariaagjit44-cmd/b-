@@ -21,6 +21,13 @@ const App: React.FC = () => {
   const [finalScore, setFinalScore] = useState<{ score: number; feedback: string } | null>(null);
   const [sessionStarted, setSessionStarted] = useState(false);
   const chatBoxRef = useRef<HTMLDivElement>(null);
+  
+  // Create a ref to hold the most current version of messages.
+  // This solves the stale state issue in callbacks.
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const { speak } = useSpeechSynthesis();
   
@@ -29,15 +36,15 @@ const App: React.FC = () => {
 
     const newUserMessage: Message = { id: Date.now(), text, sender: Sender.USER };
     
-    // The state update is tricky with closures. Pass a function to setMessages to get the latest state.
-    const currentHistory = messages;
+    // Get the history for the API call from the ref to ensure it's the latest.
+    const historyForApi = messagesRef.current;
     
     // Add user message and a placeholder for AI response to the UI
     setMessages((prev) => [...prev, newUserMessage, { id: Date.now() + 1, text: '', sender: Sender.AI, isStreaming: true }]);
     setIsAiResponding(true);
 
     try {
-        const stream = getAiResponseStream(currentHistory, text);
+        const stream = getAiResponseStream(historyForApi, text);
         let fullAiText = '';
         
         for await (const chunkText of stream) {
@@ -69,7 +76,7 @@ const App: React.FC = () => {
             speak(audioData);
         } else {
              // Remove placeholder if no text was generated
-            setMessages(prev => prev.filter(msg => msg.text || msg.sender === Sender.USER));
+            setMessages(prev => prev.slice(0, -1));
         }
 
     } catch (error) {
@@ -87,7 +94,7 @@ const App: React.FC = () => {
     } finally {
         setIsAiResponding(false);
     }
-  }, [speak, messages]);
+  }, [speak]);
 
   const {
     isListening,
@@ -124,7 +131,8 @@ const App: React.FC = () => {
   const handleEndSession = async () => {
     setIsAiResponding(true);
     try {
-      const result = await getFinalEvaluation(messages);
+      const historyForEval = messagesRef.current; // Use ref for up-to-date history
+      const result = await getFinalEvaluation(historyForEval);
       setFinalScore(result);
       const evaluationMessage: Message = {
         id: Date.now() + 1,
